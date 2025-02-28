@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.0.1
+
+- Updated `http` package.
+- Updated documentation.
+
 ## 1.0.0
 
 - Replaced `projectId` with `projectIds` to support multi-project verification.
