@@ -12,7 +12,7 @@ class AccurateTime {
   static DateTime? _lastNtpSync;
 
   /// The interval for NTP synchronization.
-  static Duration syncInterval = const Duration(minutes: 10);
+  static Duration syncInterval = const Duration(minutes: 30);
 
   /// Gets the current accurate time, using cached NTP time with local offset.
   /// If the cache is too old or not available, it will synchronize with NTP.

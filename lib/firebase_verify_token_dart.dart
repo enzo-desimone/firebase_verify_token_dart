@@ -1,21 +1,41 @@
 import 'dart:convert';
 import 'dart:developer';
 
-import 'package:firebase_verify_token_dart/accurate_time.dart';
-import 'package:firebase_verify_token_dart/firebase_token.dart';
+import 'package:firebase_verify_token_dart/firebase_jwt.dart';
+import 'package:firebase_verify_token_dart/models/firebase_mock.dart';
 import 'package:http/http.dart' as http;
 import 'package:jose_plus/jose.dart';
 
-/// This class is responsible for verifying Firebase JWT tokens and caching public keys.
+/// This class handles the verification of Firebase JWT tokens,
+/// including caching and retrieval of Google's public keys for signature validation.
 class FirebaseVerifyToken {
-  /// Firebase project IDs to verify against.
+  /// List of accepted Firebase project IDs used to validate the `aud` claim of the token.
   static List<String> projectIds = <String>[];
 
-  /// Cache for storing public keys.
+  /// Cached public keys used for verifying the token's signature.
   static Map<String, String>? _cachedKeys;
+
+  /// Expiration timestamp for the cached public keys.
   static DateTime? _cacheExpiration;
 
-  /// Verifies a Firebase JWT token. Returns true if valid, otherwise false.
+  /// URL to retrieve Google's public keys used for Firebase token verification.
+  static const String _googleUrlKeys =
+      'https://www.googleapis.com/robot/v1/metadata/x509/securetoken@system.gserviceaccount.com';
+
+  /// Verifies a Firebase JWT token.
+  ///
+  /// Returns `true` if the token is valid, `false` otherwise.
+  ///
+  /// Validations include:
+  /// - Token algorithm (`alg`)
+  /// - Key ID (`kid`) presence in Google public keys
+  /// - Signature verification using Google's public keys
+  /// - Audience (`aud`) matches one of the configured [projectIds]
+  /// - Issued at (`iat`), expiration (`exp`), and auth time (`auth_time`) validity
+  /// - Issuer (`iss`) matches expected Firebase format
+  /// - Subject (`sub`) is not empty
+  ///
+  /// Optionally invokes [onVerifySuccessful] callback with verification result and project ID.
   static Future<bool> verify(
     String token, {
     void Function({required bool status, String? projectId})?
@@ -24,37 +44,39 @@ class FirebaseVerifyToken {
     if (projectIds.isEmpty) return false;
 
     try {
-      final keys = await _fetchPublicKeys();
+      final publicKeys = await _fetchPublicKeys();
       final jwt = JsonWebToken.unverified(token);
-      final kid = FirebaseJWT.parseJwtHeader(token)['kid'] as String?;
+      final header = FirebaseJWT.parseJwtHeader(token);
 
-      if (kid == null || !keys.containsKey(kid)) return false;
+      final firebaseMock = FirebaseMock.fromValue(header, jwt.claims.toJson());
 
-      final publicKey = JsonWebKey.fromPem(keys[kid]!, keyId: kid);
-      final keyStore = JsonWebKeyStore()
-        ..addKey(JsonWebKey.fromJson(publicKey.toJson()));
-      final isSignatureValid = await jwt.verify(keyStore);
+      if (!publicKeys.containsKey(firebaseMock.kid)) return false;
 
-      if (!isSignatureValid) return false;
-
-      final now = await AccurateTime.now();
-      final projectId = jwt.claims['aud'] as String?;
-
-      if (!projectIds.contains(projectId)) return false;
-
-      if (!_isClaimDateValid(jwt.claims['exp'], now) ||
-          !_isClaimDateValid(jwt.claims['iat'], now, isAfter: true) ||
-          !_isClaimDateValid(jwt.claims['auth_time'], now, isAfter: true)) {
+      if (!firebaseMock.validateAlg) {
+        log('Token uses an unsupported algorithm: ${firebaseMock.alg}');
         return false;
       }
 
-      if (jwt.claims['iss'] != 'https://securetoken.google.com/$projectId' ||
-          jwt.claims['sub'] == null ||
-          (jwt.claims['sub'] as String).isEmpty) {
+      if (!firebaseMock.validateKeysByKid(publicKeys.keys.toList())) {
         return false;
       }
 
-      onVerifySuccessful?.call(status: true, projectId: projectId);
+      final publicKey = JsonWebKey.fromPem(
+        publicKeys[firebaseMock.kid]!,
+        keyId: firebaseMock.kid,
+      );
+      final keyStore = JsonWebKeyStore()..addKey(publicKey);
+
+      if (!await jwt.verify(keyStore)) return false;
+      if (!firebaseMock.validateProjectID(projectIds)) return false;
+      if (!await firebaseMock.validateExpIatAuthTime) return false;
+
+      if (!firebaseMock.validateIss || !firebaseMock.validateSub) return false;
+
+      onVerifySuccessful?.call(
+        status: true,
+        projectId: firebaseMock.projectID,
+      );
       return true;
     } catch (e) {
       onVerifySuccessful?.call(status: false);
@@ -63,19 +85,9 @@ class FirebaseVerifyToken {
     }
   }
 
-  /// Helper function to validate claims with date fields.
-  static bool _isClaimDateValid(
-    dynamic claim,
-    DateTime now, {
-    bool isAfter = false,
-  }) {
-    if (claim == null) return false;
-    final claimDate =
-        DateTime.fromMillisecondsSinceEpoch((claim as int) * 1000, isUtc: true);
-    return isAfter ? claimDate.isBefore(now) : claimDate.isAfter(now);
-  }
-
-  /// Fetches public keys from Google or returns cached keys if still valid.
+  /// Retrieves and caches Google's public keys for Firebase token validation.
+  ///
+  /// If cached keys are still valid (based on HTTP headers), they are returned directly.
   static Future<Map<String, String>> _fetchPublicKeys() async {
     if (_cachedKeys != null &&
         _cacheExpiration != null &&
@@ -83,11 +95,7 @@ class FirebaseVerifyToken {
       return _cachedKeys!;
     }
 
-    final response = await http.get(
-      Uri.parse(
-        'https://www.googleapis.com/robot/v1/metadata/x509/securetoken@system.gserviceaccount.com',
-      ),
-    );
+    final response = await http.get(Uri.parse(_googleUrlKeys));
 
     if (response.statusCode == 200) {
       _cachedKeys = Map<String, String>.from(json.decode(response.body) as Map);
@@ -98,7 +106,9 @@ class FirebaseVerifyToken {
     }
   }
 
-  /// Determines cache expiration time from HTTP headers.
+  /// Determines cache expiration time based on HTTP response headers.
+  ///
+  /// Returns a [DateTime] representing the cache validity.
   static DateTime _getCacheExpirationFromHeaders(Map<String, String> headers) {
     if (headers.containsKey('cache-control')) {
       final cacheControl = headers['cache-control'];
@@ -110,13 +120,22 @@ class FirebaseVerifyToken {
     } else if (headers.containsKey('expires')) {
       return DateTime.parse(headers['expires']!);
     }
-    return DateTime.now()
-        .add(const Duration(minutes: 10)); // Default cache duration
+    return DateTime.now().add(const Duration(minutes: 10));
   }
 
-  /// Retrieves the user ID from the token's claims.
-  static String getIdByToken(String token) {
+  /// Extracts the user ID (`sub` claim) from a Firebase JWT without verifying the token.
+  ///
+  /// Useful for quickly retrieving the authenticated user's UID.
+  static String getUserID(String token) {
     final jwt = JsonWebToken.unverified(token);
-    return jwt.claims['user_id'] as String;
+    return jwt.claims['sub'] as String;
+  }
+
+  /// Extracts the Firebase project ID (`aud` claim) from a JWT without verifying the token.
+  ///
+  /// Returns `null` if the claim is missing.
+  static String? getProjectID(String token) {
+    final jwt = JsonWebToken.unverified(token);
+    return jwt.claims['aud'] as String?;
   }
 }
