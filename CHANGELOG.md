@@ -1,5 +1,8 @@
 # Changelog
 
+## 2.0.1
+- Removed the `ntp` package to ensure full compatibility with WebAssembly (WASM).
+
 ## 2.0.0
 
 - Improved the readability of the `verify()` method by introducing a dedicated helper class.

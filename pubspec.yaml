@@ -1,6 +1,6 @@
 name: firebase_verify_token_dart
 description: Package to verify a firebase jwt token across multiple Firebase projects
-version: 2.0.0
+version: 2.0.1
 homepage: https://github.com/enzo-desimone/firebase_verify_token_dart
 
 environment:
@@ -9,7 +9,6 @@ environment:
 dependencies:
   http: ^1.4.0
   jose_plus: ^0.4.7
-  ntp: ^2.0.0
 
 dev_dependencies:
   very_good_analysis: ^7.0.0
