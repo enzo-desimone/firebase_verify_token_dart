@@ -46,7 +46,7 @@ class AccurateTime {
       final response = await http.get(Uri.parse(_url));
       _lastHttpSync = DateTime.now();
       final data = jsonDecode(response.body) as Map<String, dynamic>;
-      _cachedUtcTime = DateTime.parse('${data['dateTime']}').toUtc();
+      _cachedUtcTime = DateTime.parse('${data['dateTime']}');
     } catch (e) {
       _cachedUtcTime = DateTime.now().toUtc();
       log('Failed to sync with HTTP time: $e');

@@ -1,5 +1,11 @@
 # Changelog
 
+## 2.0.2
+- Fixed date parsing [karelklic](https://github.com/karelklic):
+  Ensured all times are correctly interpreted as UTC to avoid timezone errors.
+- Improved claim date validation logic for token checks.
+
+
 ## 2.0.1
 - Removed the `ntp` package to ensure full compatibility with WebAssembly (WASM).
 

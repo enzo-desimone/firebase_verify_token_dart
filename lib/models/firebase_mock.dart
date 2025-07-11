@@ -71,13 +71,15 @@ class FirebaseMock {
   /// Validates that the `aud` claim matches one of the provided Firebase project IDs.
   bool validateProjectID(List<String> projectIds) => projectIds.contains(aud);
 
-  /// Validates `exp`, `iat`, and `auth_time` claims using the current accurate time.
+  /// Validates `exp`, `iat`, and `auth_time` claims using the current accurate
+  /// time. The `exp` claim must be in the future, while `iat` and `auth_time`
+  /// must be in the past.
   Future<bool> get validateExpIatAuthTime async {
     final now = await AccurateTime.now();
 
     final validateExp = _isClaimDateValid(exp, now);
-    final validateIat = _isClaimDateValid(iat, now, isAfter: true);
-    final validateAuthTime = _isClaimDateValid(authTime, now, isAfter: true);
+    final validateIat = _isClaimDateValid(iat, now);
+    final validateAuthTime = _isClaimDateValid(authTime, now, mustBePast: true);
 
     if (!validateExp) log('Token expired');
     if (!validateIat) log('Token issued in the future');
@@ -99,12 +101,13 @@ class FirebaseMock {
   static bool _isClaimDateValid(
     dynamic claim,
     DateTime now, {
-    bool isAfter = false,
+
+        bool mustBePast = false,
   }) {
     if (claim == null) return false;
     final claimDate =
         DateTime.fromMillisecondsSinceEpoch((claim as int) * 1000, isUtc: true);
-    return isAfter ? claimDate.isBefore(now) : claimDate.isAfter(now);
+    return mustBePast ? claimDate.isBefore(now) : claimDate.isAfter(now);
   }
 
   @override
