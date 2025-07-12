@@ -1,5 +1,9 @@
 # Changelog
 
+## 2.0.3
+- Improved verification `speed` by switching to a new API for retrieving date and time in UTC.
+- Fixed verification issues with `iat` and `authTime`.
+
 ## 2.0.2
 - Fixed date parsing [karelklic](https://github.com/karelklic):
   Ensured all times are correctly interpreted as UTC to avoid timezone errors.

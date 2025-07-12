@@ -1,7 +1,8 @@
 import 'dart:async';
-import 'dart:convert';
 import 'dart:developer';
+
 import 'package:http/http.dart' as http;
+import 'package:intl/intl.dart';
 
 /// A static class to manage accurate UTC time using HTTP synchronization and local caching.
 class AccurateTime {
@@ -14,8 +15,7 @@ class AccurateTime {
   /// The interval at which the time should be resynchronized.
   static Duration syncInterval = const Duration(minutes: 60);
 
-  static String get _url =>
-      'https://timeapi.io/api/Time/current/zone?timeZone=UTC';
+  static String get _url => 'https://postman-echo.com/time/now';
 
   /// Returns the current accurate UTC time.
   ///
@@ -45,8 +45,9 @@ class AccurateTime {
     try {
       final response = await http.get(Uri.parse(_url));
       _lastHttpSync = DateTime.now();
-      final data = jsonDecode(response.body) as Map<String, dynamic>;
-      _cachedUtcTime = DateTime.parse('${data['dateTime']}');
+      final stringDate = response.body;
+      final format = DateFormat("EEE, dd MMM yyyy HH:mm:ss 'GMT'", 'en_US');
+      _cachedUtcTime = format.parseUTC(stringDate);
     } catch (e) {
       _cachedUtcTime = DateTime.now().toUtc();
       log('Failed to sync with HTTP time: $e');

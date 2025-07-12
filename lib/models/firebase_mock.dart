@@ -78,7 +78,7 @@ class FirebaseMock {
     final now = await AccurateTime.now();
 
     final validateExp = _isClaimDateValid(exp, now);
-    final validateIat = _isClaimDateValid(iat, now);
+    final validateIat = _isClaimDateValid(iat, now, mustBePast: true);
     final validateAuthTime = _isClaimDateValid(authTime, now, mustBePast: true);
 
     if (!validateExp) log('Token expired');
@@ -101,12 +101,12 @@ class FirebaseMock {
   static bool _isClaimDateValid(
     dynamic claim,
     DateTime now, {
-
-        bool mustBePast = false,
+    bool mustBePast = false,
   }) {
     if (claim == null) return false;
     final claimDate =
         DateTime.fromMillisecondsSinceEpoch((claim as int) * 1000, isUtc: true);
+
     return mustBePast ? claimDate.isBefore(now) : claimDate.isAfter(now);
   }
 
