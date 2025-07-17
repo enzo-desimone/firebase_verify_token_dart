@@ -1,6 +1,5 @@
 import 'dart:developer';
-
-import 'package:firebase_verify_token_dart/models/models.dart';
+import 'package:ntp_dart/ntp_dart.dart';
 
 /// A class that represents and validates claims extracted from a Firebase JWT token.
 class FirebaseMock {

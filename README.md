@@ -5,7 +5,6 @@ A Flutter plugin that allows you to verify **Firebase JWT Tokens** across multip
 [![Pub Version](https://img.shields.io/pub/v/firebase_verify_token?style=flat-square&logo=dart)](https://pub.dev/packages/firebase_verify_token)
 ![Pub Likes](https://img.shields.io/pub/likes/firebase_verify_token)
 ![Pub Likes](https://img.shields.io/pub/points/firebase_verify_token)
-![Pub Likes](https://img.shields.io/pub/popularity/firebase_verify_token)
 ![GitHub license](https://img.shields.io/github/license/enzo-desimone/check_app_version?style=flat-square)
 
 ## 📱 Supported Platforms
@@ -214,4 +213,4 @@ Contributions are welcome! Open an [issue](https://github.com/your-username/fire
 
 ## 📃 License
 
-This package is released under the MIT license. See the [LICENSE](https://github.com/your-username/firebase_verify_token/blob/master/LICENSE) file for more details.
+This package is released under the MIT license. See the [LICENSE](https://github.com/enzo-desimone/firebase_verify_token_dart/blob/master/LICENSE) file for more details.

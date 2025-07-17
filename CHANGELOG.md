@@ -1,5 +1,10 @@
 # Changelog
 
+## 2.1.0
+- Accelerated token verification by integrating the `ntp_dart` package for precise UTC time retrieval.
+- Enhanced `onVerifySuccessful` callback to return the verification duration in milliseconds.
+
+
 ## 2.0.3
 - Improved verification `speed` by switching to a new API for retrieving date and time in UTC.
 - Fixed verification issues with `iat` and `authTime`.

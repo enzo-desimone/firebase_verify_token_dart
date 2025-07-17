@@ -22,26 +22,32 @@ class FirebaseVerifyToken {
   static const String _googleUrlKeys =
       'https://www.googleapis.com/robot/v1/metadata/x509/securetoken@system.gserviceaccount.com';
 
-  /// Verifies a Firebase JWT token.
+  /// Verifies a Firebase JWT token against a predefined list of project IDs
+  /// and the corresponding public keys fetched from the authentication service.
   ///
-  /// Returns `true` if the token is valid, `false` otherwise.
+  /// This method fetches the current public keys, parses the provided token,
+  /// and validates:
+  /// 1. Token algorithm support.
+  /// 2. Signature correctness.
+  /// 3. Project ID membership.
+  /// 4. Expiration (`exp`), "issued at" (`iat`), and authentication time (`auth_time`).
+  /// 5. Issuer (`iss`) and subject (`sub`) claims.
   ///
-  /// Validations include:
-  /// - Token algorithm (`alg`)
-  /// - Key ID (`kid`) presence in Google public keys
-  /// - Signature verification using Google's public keys
-  /// - Audience (`aud`) matches one of the configured [projectIds]
-  /// - Issued at (`iat`), expiration (`exp`), and auth time (`auth_time`) validity
-  /// - Issuer (`iss`) matches expected Firebase format
-  /// - Subject (`sub`) is not empty
+  /// If an optional [onVerifySuccessful] callback is provided, it will be called
+  /// at the end of the process with:
+  /// - [status]: `true` if verification succeeded, `false` otherwise.
+  /// - [projectId]: the matching Firebase project ID (only on success).
+  /// - [duration]: the time taken (in milliseconds) for the verification.
   ///
-  /// Optionally invokes [onVerifySuccessful] callback with verification result and project ID.
+  /// Throws no exceptions; failures return `false` and invoke the callback if given.
   static Future<bool> verify(
     String token, {
-    void Function({required bool status, String? projectId})?
+    void Function({required bool status, String? projectId, int duration})?
         onVerifySuccessful,
   }) async {
     if (projectIds.isEmpty) return false;
+
+    final startTime = DateTime.now();
 
     try {
       final publicKeys = await _fetchPublicKeys();
@@ -76,10 +82,14 @@ class FirebaseVerifyToken {
       onVerifySuccessful?.call(
         status: true,
         projectId: firebaseMock.projectID,
+        duration: DateTime.now().difference(startTime).inMilliseconds,
       );
       return true;
     } catch (e) {
-      onVerifySuccessful?.call(status: false);
+      onVerifySuccessful?.call(
+        status: false,
+        duration: DateTime.now().difference(startTime).inMilliseconds,
+      );
       log('Error verifying token: ($e)');
       return false;
     }
