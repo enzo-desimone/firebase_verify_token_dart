@@ -1,5 +1,9 @@
 # Changelog
 
+## 2.1.1
+- update `ntp_dart` for wasm support.
+
+
 ## 2.1.0
 - Accelerated token verification by integrating the `ntp_dart` package for precise UTC time retrieval.
 - Enhanced `onVerifySuccessful` callback to return the verification duration in milliseconds.
