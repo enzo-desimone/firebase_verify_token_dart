@@ -1,13 +1,15 @@
 # Changelog
 
+## 2.1.2
+- update `ntp_dart`
+- update documentation
+
 ## 2.1.1
 - update `ntp_dart` for wasm support.
-
 
 ## 2.1.0
 - Accelerated token verification by integrating the `ntp_dart` package for precise UTC time retrieval.
 - Enhanced `onVerifySuccessful` callback to return the verification duration in milliseconds.
-
 
 ## 2.0.3
 - Improved verification `speed` by switching to a new API for retrieving date and time in UTC.
@@ -17,7 +19,6 @@
 - Fixed date parsing [karelklic](https://github.com/karelklic):
   Ensured all times are correctly interpreted as UTC to avoid timezone errors.
 - Improved claim date validation logic for token checks.
-
 
 ## 2.0.1
 - Removed the `ntp` package to ensure full compatibility with WebAssembly (WASM).

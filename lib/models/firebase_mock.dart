@@ -1,4 +1,5 @@
 import 'dart:developer';
+
 import 'package:ntp_dart/ntp_dart.dart';
 
 /// A class that represents and validates claims extracted from a Firebase JWT token.
