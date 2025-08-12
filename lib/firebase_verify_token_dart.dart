@@ -22,6 +22,9 @@ class FirebaseVerifyToken {
   static const String _googleUrlKeys =
       'https://www.googleapis.com/robot/v1/metadata/x509/securetoken@system.gserviceaccount.com';
 
+  static final Uri _googleUrlKeysUri = Uri.parse(_googleUrlKeys);
+  static final RegExp _maxAgeRegExp = RegExp(r'max-age=(\d+)');
+
   /// Verifies a Firebase JWT token against a predefined list of project IDs
   /// and the corresponding public keys fetched from the authentication service.
   ///
@@ -63,10 +66,6 @@ class FirebaseVerifyToken {
         return false;
       }
 
-      if (!firebaseMock.validateKeysByKid(publicKeys.keys.toList())) {
-        return false;
-      }
-
       final publicKey = JsonWebKey.fromPem(
         publicKeys[firebaseMock.kid]!,
         keyId: firebaseMock.kid,
@@ -79,16 +78,18 @@ class FirebaseVerifyToken {
 
       if (!firebaseMock.validateIss || !firebaseMock.validateSub) return false;
 
+      final duration = DateTime.now().difference(startTime).inMilliseconds;
       onVerifySuccessful?.call(
         status: true,
         projectId: firebaseMock.projectID,
-        duration: DateTime.now().difference(startTime).inMilliseconds,
+        duration: duration,
       );
       return true;
     } catch (e) {
+      final duration = DateTime.now().difference(startTime).inMilliseconds;
       onVerifySuccessful?.call(
         status: false,
-        duration: DateTime.now().difference(startTime).inMilliseconds,
+        duration: duration,
       );
       log('Error verifying token: ($e)');
       return false;
@@ -105,7 +106,7 @@ class FirebaseVerifyToken {
       return _cachedKeys!;
     }
 
-    final response = await http.get(Uri.parse(_googleUrlKeys));
+    final response = await http.get(_googleUrlKeysUri);
 
     if (response.statusCode == 200) {
       _cachedKeys = Map<String, String>.from(json.decode(response.body) as Map);
@@ -120,9 +121,9 @@ class FirebaseVerifyToken {
   ///
   /// Returns a [DateTime] representing the cache validity.
   static DateTime _getCacheExpirationFromHeaders(Map<String, String> headers) {
-    if (headers.containsKey('cache-control')) {
-      final cacheControl = headers['cache-control'];
-      final maxAgeMatch = RegExp(r'max-age=(\d+)').firstMatch(cacheControl!);
+    final cacheControl = headers['cache-control'];
+    if (cacheControl != null) {
+      final maxAgeMatch = _maxAgeRegExp.firstMatch(cacheControl);
       if (maxAgeMatch != null) {
         final maxAge = int.parse(maxAgeMatch.group(1)!);
         return DateTime.now().add(Duration(seconds: maxAge));
