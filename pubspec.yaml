@@ -10,7 +10,7 @@ dependencies:
   http: ^1.5.0
   intl: ^0.20.0
   jose_plus: ^0.4.7
-  ntp_dart: ^1.1.0
+  ntp_dart: ^1.1.1
 
 
 dev_dependencies:
