@@ -22,6 +22,9 @@ class FirebaseVerifyToken {
   static const String _googleUrlKeys =
       'https://www.googleapis.com/robot/v1/metadata/x509/securetoken@system.gserviceaccount.com';
 
+  /// Regular expression used to extract the `max-age` value from cache headers.
+  static final RegExp _maxAgeRegExp = RegExp(r'max-age=(\d+)');
+
   /// Verifies a Firebase JWT token against a predefined list of project IDs
   /// and the corresponding public keys fetched from the authentication service.
   ///
@@ -57,7 +60,6 @@ class FirebaseVerifyToken {
       final firebaseMock = FirebaseMock.fromValue(header, jwt.claims.toJson());
 
       if (!publicKeys.containsKey(firebaseMock.kid)) return false;
-
       if (!firebaseMock.validateAlg) {
         log('Token uses an unsupported algorithm: ${firebaseMock.alg}');
         return false;
@@ -79,16 +81,18 @@ class FirebaseVerifyToken {
 
       if (!firebaseMock.validateIss || !firebaseMock.validateSub) return false;
 
+      final duration = DateTime.now().difference(startTime).inMilliseconds;
       onVerifySuccessful?.call(
         status: true,
         projectId: firebaseMock.projectID,
-        duration: DateTime.now().difference(startTime).inMilliseconds,
+        duration: duration,
       );
       return true;
     } catch (e) {
+      final duration = DateTime.now().difference(startTime).inMilliseconds;
       onVerifySuccessful?.call(
         status: false,
-        duration: DateTime.now().difference(startTime).inMilliseconds,
+        duration: duration,
       );
       log('Error verifying token: ($e)');
       return false;
@@ -120,15 +124,17 @@ class FirebaseVerifyToken {
   ///
   /// Returns a [DateTime] representing the cache validity.
   static DateTime _getCacheExpirationFromHeaders(Map<String, String> headers) {
-    if (headers.containsKey('cache-control')) {
-      final cacheControl = headers['cache-control'];
-      final maxAgeMatch = RegExp(r'max-age=(\d+)').firstMatch(cacheControl!);
+    final cacheControl = headers['cache-control'];
+    if (cacheControl != null) {
+      final maxAgeMatch = _maxAgeRegExp.firstMatch(cacheControl);
       if (maxAgeMatch != null) {
         final maxAge = int.parse(maxAgeMatch.group(1)!);
         return DateTime.now().add(Duration(seconds: maxAge));
       }
-    } else if (headers.containsKey('expires')) {
-      return DateTime.parse(headers['expires']!);
+    }
+    final expires = headers['expires'];
+    if (expires != null) {
+      return DateTime.parse(expires);
     }
     return DateTime.now().add(const Duration(minutes: 10));
   }

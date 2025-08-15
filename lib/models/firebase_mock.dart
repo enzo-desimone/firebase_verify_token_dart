@@ -44,6 +44,9 @@ class FirebaseMock {
   static const String defaultAlg = 'RS256';
 
   /// Creates a [FirebaseMock] from the token header and payload maps.
+  ///
+  /// The [headers] and [payload] parameters must contain the decoded JWT
+  /// header and payload respectively.
   static FirebaseMock fromValue(
     Map<String, dynamic> headers,
     Map<String, dynamic> payload,
@@ -110,6 +113,7 @@ class FirebaseMock {
     return mustBePast ? claimDate.isBefore(now) : claimDate.isAfter(now);
   }
 
+  /// Returns a readable string representation of the claims.
   @override
   String toString() {
     return 'FirebaseMock('

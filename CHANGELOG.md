@@ -1,5 +1,9 @@
 # Changelog
 
+## 2.1.3
+- update `ntp_dart` and `http`
+- update documentation
+
 ## 2.1.2
 - update `ntp_dart`
 - update documentation
