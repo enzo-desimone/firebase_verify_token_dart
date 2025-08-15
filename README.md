@@ -1,7 +1,7 @@
 # Firebase Verify Token
 
 <p align="left">
-  <img src="https://raw.githubusercontent.com/enzo-desimone/firebase_verify_token_dart/master/firebase_verify_token_dart.png" alt="NTP Dart" width="50%" />
+  <img src="https://raw.githubusercontent.com/enzo-desimone/firebase_verify_token_dart/master/firebase_verify_token_dart.webp" alt="NTP Dart" width="50%" />
 </p>
 
 A Dart/Flutter plugin to **verify Firebase JWT tokens**, supporting multiple Firebase projects across any platform.
