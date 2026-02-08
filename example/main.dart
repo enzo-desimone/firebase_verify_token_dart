@@ -1,22 +1,67 @@
 import 'package:firebase_verify_token_dart/firebase_verify_token_dart.dart';
 
 void main() async {
-  // Set your Firebase project IDs
-  FirebaseVerifyToken.projectIds = ['cbes-c64d6', 'test-1'];
+  print('🚀 Starting Firebase Token Verification Example...\n');
 
-  // Sample Firebase JWT token
-  const token = 'eyJhbGciOiJSUzI1NiIsImtpZCI6IjJiN2JhZmIyZjEwY2FlMmIxZjA3ZjM4MTZjNTQyMmJlY2NhNWMyMjMiLCJ0eXAiOiJKV1QifQ.eyJpc3MiOiJodHRwczovL3NlY3VyZXRva2VuLmdvb2dsZS5jb20vY2Jlcy1jNjRkNiIsImF1ZCI6ImNiZXMtYzY0ZDYiLCJhdXRoX3RpbWUiOjE3NTQxNDM3ODksInVzZXJfaWQiOiJWU3FSeVp3Q0hjYkc3UHg5d1NGMElaUndwcUIyIiwic3ViIjoiVlNxUnlad0NIY2JHN1B4OXdTRjBJWlJ3cHFCMiIsImlhdCI6MTc1NTI0Nzk4NiwiZXhwIjoxNzU1MjUxNTg2LCJlbWFpbCI6ImJlc2ltc29mdEBvdXRsb29rLml0IiwiZW1haWxfdmVyaWZpZWQiOnRydWUsImZpcmViYXNlIjp7ImlkZW50aXRpZXMiOnsiZW1haWwiOlsiYmVzaW1zb2Z0QG91dGxvb2suaXQiXX0sInNpZ25faW5fcHJvdmlkZXIiOiJwYXNzd29yZCJ9fQ.Hh8uGCfNneDLL_NQncdo2g7c7cHGpDAu9sTY-xfWXQ3EWlaj9Ac5MKnuQJqTycZxyu8R43QvldbDx7-pWxIRwTc9gztvI_52ybUQ7PRX7zwJoPnBrcrXTfBYfavg1AH9ZkfDdvbnGMl1dVJWb580Wg_UfQ-MJK4LmiTNV0WRSYKgv-Olj3XETF1qgCCZZqZUbsliD1pHPPAZ_GH6rAPtgaOo5XwuG_5LSiYzfe1l0AdCxUl4AvRQlV2cfdkdUpWdifunFO-xq2YuiHWxAx-jVpDvbJpxz9re80kGrXn-ZN5e0yWrTPdT3f3DvZ4lC41j4dTBMRcdrl9uEvHq6NvcyQ';
+  // 1. Set the accepted Firebase Project IDs (Audience)
+  // detailed at: https://console.firebase.google.com/
+  FirebaseVerifyToken.projectIds = ['my-awesome-project', 'test-env-project'];
+  print('📋 Accepted Project IDs: ${FirebaseVerifyToken.projectIds}\n');
 
-  // Verify the token with callback
-  await FirebaseVerifyToken.verify(
-    token,
-    onVerifySuccessful: (
-        {required bool status, String? projectId, int? duration,}) {
+  // 2. Sample Firebase JWT token (Fake & Expired for safety)
+  // This is a structurally correct but fake token for demonstration.
+  const fakeToken =
+      'eyJhbGciOiJSUzI1NiIsImtpZCI6ImZha2Vfa2lkXzEyMzQ1IiwidHlwIjoiSldUIn0.'
+      'eyJpc3MiOiJodHRwczovL3NlY3VyZXRva2VuLmdvb2dsZS5jb20vbXktYXdlc29tZS1wcm'
+      '9qZWN0IiwiYXVkIjoibXktYXdlc29tZS1wcm9qZWN0IiwiYXV0aF90aW1lIjoxNjIzODQ3'
+      'ODMyLCJ1c2VyX2lkIjoiWGs4OTN1MjNIOVNJODkzIiwic3ViIjoiWGs4OTN1MjNIOVNJOD'
+      'kzIiwiaWF0IjoxNjIzODQ3ODMyLCJleHAiOjE2MjM4NTE0MzIsImVtYWlsIjoidXNlckBl'
+      'eGFtcGxlLmNvbSIsImVtYWlsX3ZlcmlmaWVkIjp0cnVlLCJmaXJlYmFzZSI6eyJpZGVudG'
+      'l0aWVzIjp7ImVtYWlsIjpbInVzZXJAZXhhbXBsZS5jb20iXX0sInNpZ25faW5fcHJvdmlk'
+      'ZXIiOiJwYXNzd29yZCJ9fQ.'
+      'c2lnbmF0dXJlX2NvbnRlbnRfdmFsaWRfbGVuZ3RoXzEyMw';
+
+  print('🔒 Verifying token...');
+
+  // 3. Verify the token using the verify() method
+  final isValid = await FirebaseVerifyToken.verify(
+    fakeToken,
+    onVerifyCompleted: ({
+      required bool status,
+      String? projectId,
+      int duration = 0,
+    }) {
+      print(status);
+
       if (status) {
-        print('✅ Token verified for project: $projectId ($duration ms)');
+        print(
+          '✅ SUCCESS: Token is valid!\n'
+          '   - Project ID: $projectId\n'
+          '   - Duration: ${duration}ms',
+        );
       } else {
-        print('❌ Token verification failed ($duration ms)');
+        print(
+          '❌ FAILURE: Token is invalid or expired.\n'
+          '   - Check if the token is formatted correctly.\n'
+          '   - Ensure it is not expired.\n'
+          '   - Duration: ${duration}ms',
+        );
       }
     },
   );
+
+  // 4. Extract claims without verification (Optional)
+  if (!isValid) {
+    print('\n⚠️  Note: Even if invalid, we can decode unverified claims:');
+    try {
+      final uid = FirebaseVerifyToken.getUserID(fakeToken);
+      final projectId = FirebaseVerifyToken.getProjectID(fakeToken);
+      print('   - Unverified UID: $uid');
+      print('   - Unverified Project ID: $projectId');
+    } catch (e) {
+      print('   - Could not parse token: $e');
+    }
+  }
+
+  print('\n🏁 Example finished.');
 }

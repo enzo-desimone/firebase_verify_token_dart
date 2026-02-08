@@ -46,27 +46,33 @@ class FirebaseVerifyToken {
   static Future<bool> verify(
     String token, {
     void Function({required bool status, String? projectId, int duration})?
-        onVerifySuccessful,
+        onVerifyCompleted,
   }) async {
-    if (projectIds.isEmpty) return false;
-
     final startTime = DateTime.now();
+    bool isVerified = false;
+    String? projectId;
 
     try {
+      if (projectIds.isEmpty) throw Exception('Project IDs list is empty');
+
       final publicKeys = await _fetchPublicKeys();
       final jwt = JsonWebToken.unverified(token);
       final header = FirebaseJWT.parseJwtHeader(token);
 
       final firebaseMock = FirebaseMock.fromValue(header, jwt.claims.toJson());
+      projectId = firebaseMock.projectID;
 
-      if (!publicKeys.containsKey(firebaseMock.kid)) return false;
+      if (!publicKeys.containsKey(firebaseMock.kid)) {
+        throw Exception('Public key not found for KID: ${firebaseMock.kid}');
+      }
+
       if (!firebaseMock.validateAlg) {
-        log('Token uses an unsupported algorithm: ${firebaseMock.alg}');
-        return false;
+        throw Exception(
+            'Token uses an unsupported algorithm: ${firebaseMock.alg}');
       }
 
       if (!firebaseMock.validateKeysByKid(publicKeys.keys.toList())) {
-        return false;
+        throw Exception('KID not found in public keys');
       }
 
       final publicKey = JsonWebKey.fromPem(
@@ -75,27 +81,40 @@ class FirebaseVerifyToken {
       );
       final keyStore = JsonWebKeyStore()..addKey(publicKey);
 
-      if (!await jwt.verify(keyStore)) return false;
-      if (!firebaseMock.validateProjectID(projectIds)) return false;
-      if (!await firebaseMock.validateExpIatAuthTime) return false;
+      if (!await jwt.verify(keyStore)) {
+        throw Exception('JWT signature verification failed');
+      }
 
-      if (!firebaseMock.validateIss || !firebaseMock.validateSub) return false;
+      if (!firebaseMock.validateProjectID(projectIds)) {
+        throw Exception(
+            'Token audience mismatch. Expected one of: $projectIds, but got: ${firebaseMock.aud}');
+      }
 
-      final duration = DateTime.now().difference(startTime).inMilliseconds;
-      onVerifySuccessful?.call(
-        status: true,
-        projectId: firebaseMock.projectID,
-        duration: duration,
-      );
+      if (!await firebaseMock.validateExpIatAuthTime) {
+        // Logging is handled inside validateExpIatAuthTime
+        throw Exception('Token expired or time validation failed');
+      }
+
+      if (!firebaseMock.validateIss) {
+        throw Exception('Token issuer mismatch');
+      }
+
+      if (!firebaseMock.validateSub) {
+        throw Exception('Token subject (sub) is empty');
+      }
+
+      isVerified = true;
       return true;
     } catch (e) {
-      final duration = DateTime.now().difference(startTime).inMilliseconds;
-      onVerifySuccessful?.call(
-        status: false,
-        duration: duration,
-      );
       log('Error verifying token: ($e)');
       return false;
+    } finally {
+      final duration = DateTime.now().difference(startTime).inMilliseconds;
+      onVerifyCompleted?.call(
+        status: isVerified,
+        projectId: projectId,
+        duration: duration,
+      );
     }
   }
 

@@ -1,5 +1,11 @@
 # Changelog
 
+## 2.2.0
+- **BREAKING**: Renamed `onVerifySuccessful` to `onVerifyCompleted`.
+  - The callback is now guaranteed to be called even if verification fails or an exception occurs.
+- Fixed token verification to explicitly use UTC time comparisons for improved accuracy.
+- Updated `http`, `intl`, and `ntp_dart` packages.
+
 ## 2.1.3
 - update `ntp_dart` and `http`
 - update documentation

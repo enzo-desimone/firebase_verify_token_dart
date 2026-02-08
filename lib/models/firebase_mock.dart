@@ -1,4 +1,5 @@
 import 'dart:developer';
+
 import 'package:ntp_dart/ntp_dart.dart';
 
 /// A class that represents and validates claims extracted from a Firebase JWT token.
@@ -77,7 +78,7 @@ class FirebaseMock {
   /// time. The `exp` claim must be in the future, while `iat` and `auth_time`
   /// must be in the past.
   Future<bool> get validateExpIatAuthTime async {
-    final now = await AccurateTime.now();
+    final now = await AccurateTime.now(isUtc: true);
 
     final validateExp = _isClaimDateValid(exp, now);
     final validateIat = _isClaimDateValid(iat, now, mustBePast: true);

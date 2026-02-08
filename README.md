@@ -1,160 +1,128 @@
 # Firebase Verify Token
 
-<p align="left">
-  <img src="https://raw.githubusercontent.com/enzo-desimone/firebase_verify_token_dart/master/example/firebase_verify_token_dart.webp" alt="Firebase Verify Token" width="50%" />
+<p align="center">
+  <img src="https://raw.githubusercontent.com/enzo-desimone/firebase_verify_token_dart/master/example/firebase_verify_token_dart.webp" alt="Firebase Verify Token" width="400" style="border-radius: 20px; box-shadow: 0 4px 8px rgba(0,0,0,0.1);" style="border-radius: 10px;" />
 </p>
 
-A Dart/Flutter plugin to **verify Firebase JWT tokens**, supporting multiple Firebase projects across any platform.
+<p align="center">
+  <b>Secure, lightweight, and pure Dart solution for verifying Firebase JWT tokens.</b>
+  <br>
+  No backend required. Supports multi-project validation.
+</p>
 
-[![Pub Version](https://img.shields.io/pub/v/firebase_verify_token_dart?style=flat-square&logo=dart)](https://pub.dev/packages/firebase_verify_token_dart)
-![Pub Likes](https://img.shields.io/pub/likes/firebase_verify_token_dart)
-![Pub Points](https://img.shields.io/pub/points/firebase_verify_token_dart)
-![GitHub license](https://img.shields.io/github/license/enzo-desimone/firebase_verify_token_dart?style=flat-square)
-
----
-
-## 📱 Supported Platforms
-
-| Android | iOS | macOS | Web | Linux | Windows |
-|:-------:|:---:|:-----:|:---:|:-----:|:-------:|
-|   ✔️    | ✔️   |  ✔️   | ✔️   |  ✔️   |   ✔️    |
-
----
-
-## 🔍 Overview
-
-`firebase_verify_token_dart` verifies **Firebase JWT tokens** entirely in Dart without relying on backend services. It performs:
-
-- ✅ **Project ID validation** against a whitelist
-- ✅ **Issuer check** to ensure token is from Firebase
-- ✅ **Expiration check**
-- ✅ **JWT structure validation**
+<p align="center">
+  <a href="https://pub.dev/packages/firebase_verify_token_dart">
+    <img src="https://img.shields.io/pub/v/firebase_verify_token_dart?style=flat-square&logo=dart&color=blue" alt="Pub Version" />
+  </a>
+  <a href="https://pub.dev/packages/firebase_verify_token_dart/score">
+    <img src="https://img.shields.io/pub/points/firebase_verify_token_dart?style=flat-square&logo=dart" alt="Pub Points" />
+  </a>
+  <a href="https://pub.dev/packages/firebase_verify_token_dart">
+    <img src="https://img.shields.io/pub/likes/firebase_verify_token_dart?style=flat-square&logo=dart" alt="Pub Likes" />
+  </a>
+  <a href="https://github.com/enzo-desimone/firebase_verify_token_dart/blob/master/LICENSE">
+    <img src="https://img.shields.io/github/license/enzo-desimone/firebase_verify_token_dart?style=flat-square&color=purple" alt="License" />
+  </a>
+</p>
 
 ---
 
-## ⚙️ Installation
+## ✨ Features
 
-Add the dependency:
+- 🛡️ **Pure Dart**: Verify tokens without exposing your private keys or using the Firebase Admin SDK.
+- 🌍 **Multi-Platform**: Works on **Android**, **iOS**, **Web**, **macOS**, **Windows**, and **Linux**.
+- ⏱️ **Accurate Timing**: Uses NTP synchronization to prevent issues with device clock drift.
+- ⚡ **High Performance**: Caches Google's public keys for faster verification.
+- 🔐 **Secure Validation**:
+  - Checks **Signature** (RSA SHA-256)
+  - Validates **Expiration** (`exp`), **Issued At** (`iat`), and **Auth Time** (`auth_time`).
+  - Verifies **Audience** (`aud` / Project ID) and **Issuer** (`iss`).
 
+---
+
+## 🚀 Getting Started
+
+### 1. Install via `pubspec.yaml`
 ```yaml
 dependencies:
-  firebase_verify_token_dart: ^latest
+  firebase_verify_token_dart: ^2.2.0
 ```
 
-Then run:
-
-```bash
-flutter pub get
+### 2. Import the Package
+```dart
+import 'package:firebase_verify_token_dart/firebase_verify_token_dart.dart';
 ```
 
 ---
 
-## 🚀 Quick Start
+## 📖 Usage
 
-### 1. Import the package
-
-```dart
-import 'package:firebase_verify_token/firebase_verify_token.dart';
-```
-
-### 2. Initialize with your Firebase project IDs
+### Initialize
+Set the allowed Firebase Project IDs (Audience) before verifying tokens. This is usually done in your `main()` or initialization logic.
 
 ```dart
-FirebaseVerifyToken.projectIds = [
-  'project-id-1',
-  'project-id-2',
-];
-```
-
----
-
-## 🔐 Token Verification
-
-### ✅ Basic Verification
-
-```dart
-final isValid = await FirebaseVerifyToken.verify('your-firebase-jwt-token');
-
-if (isValid) {
-  // Token is valid
+void main() {
+  FirebaseVerifyToken.projectIds = ['my-firebase-project-id'];
 }
 ```
 
-### 🧠 With Callback (for project ID and duration)
+### Verify a Token
+Verify a raw JWT token string. This method is asynchronous and returns a `bool`.
 
 ```dart
-await FirebaseVerifyToken.verify(
-  'your-firebase-jwt-token',
-  onVerifySuccessful: ({required bool status, String? projectId, int? duration}) {
+final isValid = await FirebaseVerifyToken.verify(token);
+
+if (isValid) {
+  print("✅ Token is valid!");
+} else {
+  print("❌ Invalid token.");
+}
+```
+
+### Get Verification Details
+Pass an optional callback to get detailed results, including the matched project ID and verification duration.
+
+```dart
+final isValid = await FirebaseVerifyToken.verify(
+  token,
+  onVerifyCompleted: ({required bool status, String? projectId, int? duration}) {
     if (status) {
-      print('Valid token for project: $projectId in ${duration}ms');
+      print("✅ Verified for project '$projectId' inside ${duration}ms");
     } else {
-      print('Invalid token (checked in ${duration}ms)');
+      print("❌ Verification failed.");
     }
   },
 );
 ```
 
----
-
-## 📘 API Reference
-
-| Method | Description |
-|--------|-------------|
-| `Future<bool> FirebaseVerifyToken.verify(String token, { void Function({required bool status, String? projectId, int? duration})? onVerifySuccessful })` | Verifies the JWT token and optionally provides project ID and verification duration. |
-| `String FirebaseVerifyToken.getUserID(String token)` | Extracts the user ID (`sub` claim) from a JWT without verifying it. |
-| `String? FirebaseVerifyToken.getProjectID(String token)` | Extracts the Firebase project ID (`aud` claim) from a JWT without verifying it. |
-
----
-
-
-## 🔄 Complete Example
+### Extract Claims (Without Verification)
+Sometimes you just need to read the token's content (e.g., User ID) without a full cryptographic check.
 
 ```dart
-import 'package:firebase_verify_token/firebase_verify_token.dart';
+// Get User ID (sub)
+final uid = FirebaseVerifyToken.getUserID(token);
 
-void main() async {
-  // Set your Firebase project IDs
-  FirebaseVerifyToken.projectIds = ['cbes-c64d6', 'test-1'];
-
-  // Sample Firebase JWT token
-  const token = 'eyJhbGciOiJSUzI1NiIsImtpZCI6ImE4Z...'; // shortened for clarity
-
-  // Verify the token with callback
-  await FirebaseVerifyToken.verify(
-    token,
-    onVerifySuccessful: ({
-      required bool status,
-      String? projectId,
-      required int duration,
-    }) {
-      if (status) {
-        print('✅ Token verified for project: \$projectId (\$duration ms)');
-      } else {
-        print('❌ Token verification failed (\$duration ms)');
-      }
-    },
-  );
-}
+// Get Project ID (aud)
+final projectId = FirebaseVerifyToken.getProjectID(token);
 ```
 
+---
 
-## 💡 Common Use Cases
+## 🛠️ Advanced
 
-- 🔐 **Cross-project auth**: Accept users from multiple Firebase projects
-- 🔑 **Secure APIs**: Verify Firebase tokens server-side or client-side
-- 🌐 **Multi-app integration**: Authenticate users across a shared ecosystem
+**Why use this over the Firebase Admin SDK?**
+The Firebase Admin SDK requires a service account with elevated privileges, which is dangerous to use in client-side applications. This package purely verifies the token's signature using Google's public keys, making it safe for client-side use or lightweight server-side Dart applications (e.g., Dart Frog, Shelf).
 
 ---
 
 ## 🤝 Contributing
 
-Issues and pull requests are welcome!  
-→ [Open an issue](https://github.com/enzo-desimone/firebase_verify_token_dart/issues)  
-→ [Submit a PR](https://github.com/enzo-desimone/firebase_verify_token_dart/pulls)
+We welcome contributions!
+- 🐛 **Report Issues**: Submit bugs or feature requests on [GitHub Issues](https://github.com/enzo-desimone/firebase_verify_token_dart/issues).
+- 💡 **Submit PRs**: Pull Requests are welcome. Please adhere to the existing code style.
 
 ---
 
-## 📃 License
+## 📄 License
 
-MIT — See [LICENSE](https://github.com/enzo-desimone/firebase_verify_token_dart/blob/master/LICENSE)
+This project is licensed under the [MIT License](https://github.com/enzo-desimone/firebase_verify_token_dart/blob/master/LICENSE).
