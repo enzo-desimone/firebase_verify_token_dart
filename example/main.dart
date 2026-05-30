@@ -1,3 +1,5 @@
+// ignore_for_file: avoid_print
+
 import 'package:firebase_verify_token_dart/firebase_verify_token_dart.dart';
 
 void main() async {

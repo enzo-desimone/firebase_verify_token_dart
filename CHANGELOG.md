@@ -1,5 +1,15 @@
 # Changelog
 
+## 2.3.0
+- **Feat**: Added support for standard JWT `clockSkew` (leeway) to absorb minor time drifts between devices and Google's servers (defaults to 5 minutes).
+- **Feat**: Added `useNtp` parameter to verify options. Skip NTP calls (`useNtp = false`) to verify tokens locally and synchronously in under 1ms.
+- **Feat**: Implemented try-catch NTP failover to the local system clock so token verification never breaks offline or behind strict firewalls.
+- **Feat**: Enhanced static `verify` method to support optional `projectIds` list arguments for thread-safe concurrent multi-tenant verification.
+- **Refactor**: Converted `FirebaseMock.fromValue` to a type-safe named factory constructor with safe null fallbacks to prevent runtime TypeErrors.
+- **Fix**: Adjusted Base64 Url decoder to correctly use `base64.decode` after character swaps in `FirebaseJWT`.
+- **Fix**: Implemented case-insensitive search for HTTP cache-control and expires headers.
+- **Chore**: Integrated `package:flutter_lints` and fixed all static analysis warnings.
+
 ## 2.2.0
 - **BREAKING**: Renamed `onVerifySuccessful` to `onVerifyCompleted`.
   - The callback is now guaranteed to be called even if verification fails or an exception occurs.

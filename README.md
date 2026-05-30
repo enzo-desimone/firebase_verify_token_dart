@@ -45,7 +45,7 @@
 ### 1. Install via `pubspec.yaml`
 ```yaml
 dependencies:
-  firebase_verify_token_dart: ^2.2.0
+  firebase_verify_token_dart: ^2.3.0
 ```
 
 ### 2. Import the Package
@@ -94,6 +94,33 @@ final isValid = await FirebaseVerifyToken.verify(
   },
 );
 ```
+
+### ⚙️ Advanced Configuration (Thread-Safe & Offline-Ready)
+
+You can pass advanced arguments directly to the `verify` method. This is perfect for high-performance backends, offline development, or multi-tenant (multi-project) systems:
+
+```dart
+final isValid = await FirebaseVerifyToken.verify(
+  token,
+  // 1. Thread-safe project overriding (avoid race conditions in multi-tenant backends)
+  projectIds: ['my-awesome-project', 'another-tenant-project'],
+
+  // 2. Custom clock skew leeway (default is 5 minutes)
+  clockSkew: const Duration(minutes: 2),
+
+  // 3. High-performance / offline mode (defaults to true)
+  // Set to 'false' to bypass all NTP network checks and use the system clock.
+  // This executes validation locally and synchronously in under 1ms!
+  useNtp: false,
+
+  onVerifyCompleted: ({required bool status, String? projectId, int? duration}) {
+    print("Verification completed in ${duration}ms.");
+  },
+);
+```
+
+#### NTP Failover (Always Reliable)
+If `useNtp` is set to `true` (the default), the package will synchronize time using a precise network clock. However, if the server is offline or UDP port 123 is blocked by a restrictive firewall, the package **automatically and gracefully falls back to the system clock** rather than breaking your authentication flow.
 
 ### Extract Claims (Without Verification)
 Sometimes you just need to read the token's content (e.g., User ID) without a full cryptographic check.

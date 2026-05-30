@@ -2,7 +2,8 @@ import 'dart:developer';
 
 import 'package:ntp_dart/ntp_dart.dart';
 
-/// A class that represents and validates claims extracted from a Firebase JWT token.
+/// A class that represents and validates claims
+/// extracted from a Firebase JWT token.
 class FirebaseMock {
   /// Constructs a [FirebaseMock] with the decoded JWT header and payload values.
   FirebaseMock({
@@ -47,19 +48,19 @@ class FirebaseMock {
   ///
   /// The [headers] and [payload] parameters must contain the decoded JWT
   /// header and payload respectively.
-  static FirebaseMock fromValue(
+  factory FirebaseMock.fromValue(
     Map<String, dynamic> headers,
     Map<String, dynamic> payload,
   ) {
     return FirebaseMock(
-      alg: headers['alg'] as String,
-      kid: headers['kid'] as String,
-      aud: payload['aud'] as String,
-      exp: payload['exp'] as int,
-      iat: payload['iat'] as int,
-      authTime: payload['auth_time'] as int,
-      iss: payload['iss'] as String,
-      sub: payload['sub'] as String,
+      alg: (headers['alg'] as String?) ?? '',
+      kid: (headers['kid'] as String?) ?? '',
+      aud: (payload['aud'] as String?) ?? '',
+      exp: (payload['exp'] as int?) ?? 0,
+      iat: (payload['iat'] as int?) ?? 0,
+      authTime: (payload['auth_time'] as int?) ?? 0,
+      iss: (payload['iss'] as String?) ?? '',
+      sub: (payload['sub'] as String?) ?? '',
     );
   }
 
@@ -77,12 +78,43 @@ class FirebaseMock {
   /// Validates `exp`, `iat`, and `auth_time` claims using the current accurate
   /// time. The `exp` claim must be in the future, while `iat` and `auth_time`
   /// must be in the past.
+  ///
+  /// If NTP time retrieval fails (e.g. offline, firewalled), it gracefully
+  /// falls back to the system clock.
   Future<bool> get validateExpIatAuthTime async {
-    final now = await AccurateTime.now(isUtc: true);
+    DateTime now;
+    try {
+      now = await AccurateTime.now(isUtc: true);
+    } catch (e) {
+      log('NTP synchronization failed, falling back to system clock: $e');
+      now = DateTime.now().toUtc();
+    }
+    return validateClaimsTime(now);
+  }
 
-    final validateExp = _isClaimDateValid(exp, now);
-    final validateIat = _isClaimDateValid(iat, now, mustBePast: true);
-    final validateAuthTime = _isClaimDateValid(authTime, now, mustBePast: true);
+  /// Validates `exp`, `iat`, and `auth_time` claims using the provided [now]
+  /// time and optional [clockSkew] leeway.
+  bool validateClaimsTime(
+    DateTime now, {
+    Duration clockSkew = const Duration(minutes: 5),
+  }) {
+    final validateExp = _isClaimDateValid(
+      exp,
+      now,
+      clockSkew: clockSkew,
+    );
+    final validateIat = _isClaimDateValid(
+      iat,
+      now,
+      clockSkew: clockSkew,
+      mustBePast: true,
+    );
+    final validateAuthTime = _isClaimDateValid(
+      authTime,
+      now,
+      clockSkew: clockSkew,
+      mustBePast: true,
+    );
 
     if (!validateExp) log('Token expired');
     if (!validateIat) log('Token issued in the future');
@@ -104,13 +136,16 @@ class FirebaseMock {
   static bool _isClaimDateValid(
     dynamic claim,
     DateTime now, {
+    required Duration clockSkew,
     bool mustBePast = false,
   }) {
     if (claim == null) return false;
     final claimDate =
         DateTime.fromMillisecondsSinceEpoch((claim as int) * 1000, isUtc: true);
 
-    return mustBePast ? claimDate.isBefore(now) : claimDate.isAfter(now);
+    return mustBePast
+        ? claimDate.isBefore(now.add(clockSkew))
+        : claimDate.isAfter(now.subtract(clockSkew));
   }
 
   /// Returns a readable string representation of the claims.

@@ -13,13 +13,13 @@ class FirebaseJWT {
       throw Exception('invalid token');
     }
 
-    final payload = _decodeBase64(parts[0]);
-    final payloadMap = json.decode(payload);
-    if (payloadMap is! Map<String, dynamic>) {
-      throw Exception('invalid payload');
+    final headerJson = _decodeBase64(parts[0]);
+    final headerMap = json.decode(headerJson);
+    if (headerMap is! Map<String, dynamic>) {
+      throw Exception('invalid header');
     }
 
-    return payloadMap;
+    return headerMap;
   }
 
   static String _decodeBase64(String str) {
@@ -36,6 +36,6 @@ class FirebaseJWT {
         throw Exception('Illegal base64url string!');
     }
 
-    return utf8.decode(base64Url.decode(output));
+    return utf8.decode(base64.decode(output));
   }
 }

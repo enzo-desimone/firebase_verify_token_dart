@@ -5,11 +5,14 @@ import 'package:firebase_verify_token_dart/firebase_jwt.dart';
 import 'package:firebase_verify_token_dart/models/firebase_mock.dart';
 import 'package:http/http.dart' as http;
 import 'package:jose_plus/jose.dart';
+import 'package:ntp_dart/ntp_dart.dart';
 
 /// This class handles the verification of Firebase JWT tokens,
-/// including caching and retrieval of Google's public keys for signature validation.
+/// including caching and retrieval of Google's public keys
+/// for signature validation.
 class FirebaseVerifyToken {
-  /// List of accepted Firebase project IDs used to validate the `aud` claim of the token.
+  /// List of accepted Firebase project IDs used to validate
+  /// the `aud` claim of the token.
   static List<String> projectIds = <String>[];
 
   /// Cached public keys used for verifying the token's signature.
@@ -20,7 +23,8 @@ class FirebaseVerifyToken {
 
   /// URL to retrieve Google's public keys used for Firebase token verification.
   static const String _googleUrlKeys =
-      'https://www.googleapis.com/robot/v1/metadata/x509/securetoken@system.gserviceaccount.com';
+      'https://www.googleapis.com/robot/v1/metadata/x509/'
+      'securetoken@system.gserviceaccount.com';
 
   /// Regular expression used to extract the `max-age` value from cache headers.
   static final RegExp _maxAgeRegExp = RegExp(r'max-age=(\d+)');
@@ -33,27 +37,33 @@ class FirebaseVerifyToken {
   /// 1. Token algorithm support.
   /// 2. Signature correctness.
   /// 3. Project ID membership.
-  /// 4. Expiration (`exp`), "issued at" (`iat`), and authentication time (`auth_time`).
+  /// 4. Expiration (`exp`), "issued at" (`iat`), and auth time (`auth_time`).
   /// 5. Issuer (`iss`) and subject (`sub`) claims.
   ///
-  /// If an optional [onVerifySuccessful] callback is provided, it will be called
-  /// at the end of the process with:
-  /// - [status]: `true` if verification succeeded, `false` otherwise.
-  /// - [projectId]: the matching Firebase project ID (only on success).
-  /// - [duration]: the time taken (in milliseconds) for the verification.
+  /// If an optional [onVerifyCompleted] callback is provided, it will be
+  /// called at the end of the process with:
+  /// - `status`: `true` if verification succeeded, `false` otherwise.
+  /// - `projectId`: the matching Firebase project ID (only on success).
+  /// - `duration`: the time taken (in milliseconds) for the verification.
   ///
-  /// Throws no exceptions; failures return `false` and invoke the callback if given.
+  /// Throws no exceptions; failures return `false` and invoke the callback.
   static Future<bool> verify(
     String token, {
+    List<String>? projectIds,
+    Duration clockSkew = const Duration(minutes: 5),
+    bool useNtp = true,
     void Function({required bool status, String? projectId, int duration})?
         onVerifyCompleted,
   }) async {
     final startTime = DateTime.now();
-    bool isVerified = false;
+    var isVerified = false;
     String? projectId;
 
     try {
-      if (projectIds.isEmpty) throw Exception('Project IDs list is empty');
+      final activeProjectIds = projectIds ?? FirebaseVerifyToken.projectIds;
+      if (activeProjectIds.isEmpty) {
+        throw Exception('Project IDs list is empty');
+      }
 
       final publicKeys = await _fetchPublicKeys();
       final jwt = JsonWebToken.unverified(token);
@@ -68,7 +78,8 @@ class FirebaseVerifyToken {
 
       if (!firebaseMock.validateAlg) {
         throw Exception(
-            'Token uses an unsupported algorithm: ${firebaseMock.alg}');
+          'Token uses an unsupported algorithm: ${firebaseMock.alg}',
+        );
       }
 
       if (!firebaseMock.validateKeysByKid(publicKeys.keys.toList())) {
@@ -85,13 +96,27 @@ class FirebaseVerifyToken {
         throw Exception('JWT signature verification failed');
       }
 
-      if (!firebaseMock.validateProjectID(projectIds)) {
+      if (!firebaseMock.validateProjectID(activeProjectIds)) {
         throw Exception(
-            'Token audience mismatch. Expected one of: $projectIds, but got: ${firebaseMock.aud}');
+          'Token audience mismatch. Expected one of: $activeProjectIds, '
+          'but got: ${firebaseMock.aud}',
+        );
       }
 
-      if (!await firebaseMock.validateExpIatAuthTime) {
-        // Logging is handled inside validateExpIatAuthTime
+      // Retrieve time based on useNtp setting with try-catch fallback
+      DateTime now;
+      if (useNtp) {
+        try {
+          now = await AccurateTime.now(isUtc: true);
+        } catch (e) {
+          log('NTP synchronization failed, falling back to system clock: $e');
+          now = DateTime.now().toUtc();
+        }
+      } else {
+        now = DateTime.now().toUtc();
+      }
+
+      if (!firebaseMock.validateClaimsTime(now, clockSkew: clockSkew)) {
         throw Exception('Token expired or time validation failed');
       }
 
@@ -120,7 +145,8 @@ class FirebaseVerifyToken {
 
   /// Retrieves and caches Google's public keys for Firebase token validation.
   ///
-  /// If cached keys are still valid (based on HTTP headers), they are returned directly.
+  /// If cached keys are still valid (based on HTTP headers),
+  /// they are returned directly.
   static Future<Map<String, String>> _fetchPublicKeys() async {
     if (_cachedKeys != null &&
         _cacheExpiration != null &&
@@ -131,7 +157,9 @@ class FirebaseVerifyToken {
     final response = await http.get(Uri.parse(_googleUrlKeys));
 
     if (response.statusCode == 200) {
-      _cachedKeys = Map<String, String>.from(json.decode(response.body) as Map);
+      _cachedKeys = Map<String, String>.from(
+        json.decode(response.body) as Map,
+      );
       _cacheExpiration = _getCacheExpirationFromHeaders(response.headers);
       return _cachedKeys!;
     } else {
@@ -143,7 +171,18 @@ class FirebaseVerifyToken {
   ///
   /// Returns a [DateTime] representing the cache validity.
   static DateTime _getCacheExpirationFromHeaders(Map<String, String> headers) {
-    final cacheControl = headers['cache-control'];
+    String? cacheControl;
+    String? expires;
+
+    for (final entry in headers.entries) {
+      final key = entry.key.toLowerCase();
+      if (key == 'cache-control') {
+        cacheControl = entry.value;
+      } else if (key == 'expires') {
+        expires = entry.value;
+      }
+    }
+
     if (cacheControl != null) {
       final maxAgeMatch = _maxAgeRegExp.firstMatch(cacheControl);
       if (maxAgeMatch != null) {
@@ -151,14 +190,14 @@ class FirebaseVerifyToken {
         return DateTime.now().add(Duration(seconds: maxAge));
       }
     }
-    final expires = headers['expires'];
     if (expires != null) {
       return DateTime.parse(expires);
     }
     return DateTime.now().add(const Duration(minutes: 10));
   }
 
-  /// Extracts the user ID (`sub` claim) from a Firebase JWT without verifying the token.
+  /// Extracts the user ID (`sub` claim) from a Firebase JWT
+  /// without verifying the token.
   ///
   /// Useful for quickly retrieving the authenticated user's UID.
   static String getUserID(String token) {
@@ -166,7 +205,8 @@ class FirebaseVerifyToken {
     return jwt.claims['sub'] as String;
   }
 
-  /// Extracts the Firebase project ID (`aud` claim) from a JWT without verifying the token.
+  /// Extracts the Firebase project ID (`aud` claim) from a JWT
+  /// without verifying the token.
   ///
   /// Returns `null` if the claim is missing.
   static String? getProjectID(String token) {
