@@ -1,4 +1,30 @@
-.dart_tool/
-pubspec.lock
+# IDEs and editors
 .idea/
-firebase_verify_token_dart.iml
+.vscode/
+*.iml
+*.ipr
+*.iws
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Pub/Dart build output
+.dart_tool/
+.packages
+build/
+.pub/
+.pub-cache/
+
+# Local configuration
+local.properties
+
+# Examples build output
+example/build/
+example/.dart_tool/
+example/.packages
+
+# Tests & Coverage
+coverage/
+*.log
+

@@ -4,4 +4,4 @@
 pubspec.lock
 .idea/
 firebase_verify_token_dart.iml
-
+build/

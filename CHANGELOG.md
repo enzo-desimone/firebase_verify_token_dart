@@ -1,5 +1,16 @@
 # Changelog
 
+## 2.3.1
+
+- **Dependency Updates**:
+  - Upgraded `jose_plus` to `^1.0.0`.
+  - Upgraded `ntp_dart` to `^1.3.1`.
+  - Upgraded `intl` to `^0.20.3`.
+  - Upgraded dev dependency `test` to `^1.32.0`.
+- **Environment & Linting**:
+  - Updated `analysis_options.yaml` to exclude build and platform directories (`android`, `ios`, `web`, `windows`, `macos`, `linux`).
+  - Added `build/` to `.gitignore`.
+
 ## 2.3.0
 - **Feat**: Added support for standard JWT `clockSkew` (leeway) to absorb minor time drifts between devices and Google's servers (defaults to 5 minutes).
 - **Feat**: Added `useNtp` parameter to verify options. Skip NTP calls (`useNtp = false`) to verify tokens locally and synchronously in under 1ms.

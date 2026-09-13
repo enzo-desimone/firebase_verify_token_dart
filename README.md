@@ -1,155 +1,256 @@
-# Firebase Verify Token
+# 🔥 Firebase Verify Token (Dart)
 
 <p align="center">
-  <img src="https://raw.githubusercontent.com/enzo-desimone/firebase_verify_token_dart/master/example/firebase_verify_token_dart.webp" alt="Firebase Verify Token" width="400" style="border-radius: 20px; box-shadow: 0 4px 8px rgba(0,0,0,0.1);" style="border-radius: 10px;" />
+  <img src="https://raw.githubusercontent.com/enzo-desimone/firebase_verify_token_dart/master/example/firebase-verify-token-dart.webp" alt="Firebase Verify Token Preview" width="420" style="border-radius: 16px; box-shadow: 0 8px 24px rgba(0,0,0,0.12);" />
 </p>
 
 <p align="center">
-  <b>Secure, lightweight, and pure Dart solution for verifying Firebase JWT tokens.</b>
-  <br>
-  No backend required. Supports multi-project validation.
+  <a href="https://pub.dev/packages/firebase_verify_token_dart"><img src="https://img.shields.io/pub/v/firebase_verify_token_dart?style=for-the-badge&logo=dart&color=0052CC" alt="Pub Version" /></a>
+  <a href="https://pub.dev/packages/firebase_verify_token_dart/score"><img src="https://img.shields.io/pub/points/firebase_verify_token_dart?style=for-the-badge&color=0052CC" alt="Pub Points" /></a>
+  <a href="https://pub.dev/packages/firebase_verify_token_dart"><img src="https://img.shields.io/badge/Platforms-Android%20%7C%20iOS%20%7C%20Web%20%7C%20macOS%20%7C%20Windows%20%7C%20Linux-0052CC?style=for-the-badge" alt="Platform Support" /></a>
+  <a href="https://opensource.org/licenses/MIT"><img src="https://img.shields.io/badge/License-MIT-333333?style=for-the-badge" alt="License" /></a>
 </p>
 
-<p align="center">
-  <a href="https://pub.dev/packages/firebase_verify_token_dart">
-    <img src="https://img.shields.io/pub/v/firebase_verify_token_dart?style=flat-square&logo=dart&color=blue" alt="Pub Version" />
-  </a>
-  <a href="https://pub.dev/packages/firebase_verify_token_dart/score">
-    <img src="https://img.shields.io/pub/points/firebase_verify_token_dart?style=flat-square&logo=dart" alt="Pub Points" />
-  </a>
-  <a href="https://pub.dev/packages/firebase_verify_token_dart">
-    <img src="https://img.shields.io/pub/likes/firebase_verify_token_dart?style=flat-square&logo=dart" alt="Pub Likes" />
-  </a>
-  <a href="https://github.com/enzo-desimone/firebase_verify_token_dart/blob/master/LICENSE">
-    <img src="https://img.shields.io/github/license/enzo-desimone/firebase_verify_token_dart?style=flat-square&color=purple" alt="License" />
-  </a>
-</p>
+---
+
+**Firebase Verify Token** is a secure, lightweight, and pure Dart library designed to verify and decode **Firebase Authentication ID tokens (JWTs)** using Google's public certificates.
+
+No backend servers or Firebase Admin SDK service account keys required! Works seamlessly on client applications and server-side Dart backends (Dart Frog, Shelf, Serverpod, Cloud Functions).
+
+---
+
+## 📑 Table of Contents
+
+- [✨ Features](#-features)
+- [📦 Installation](#-installation)
+- [🚀 Quick Start](#-quick-start)
+- [📖 Usage Guide](#-usage-guide)
+  - [1. Initialize Allowed Projects](#1-initialize-allowed-projects)
+  - [2. Standard Token Verification](#2-standard-token-verification)
+  - [3. Detailed Result Callback](#3-detailed-result-callback)
+  - [4. Multi-Tenant & Thread-Safe Verification](#4-multi-tenant--thread-safe-verification)
+  - [5. Ultra-Fast & Offline Mode (`useNtp: false`)](#5-ultra-fast--offline-mode-usentp-false)
+  - [6. Clock Skew & Leeway Tolerance](#6-clock-skew--leeway-tolerance)
+  - [7. Extract Claims Without Verification](#7-extract-claims-without-verification)
+- [🔐 Verification & Security Checks](#-verification--security-checks)
+- [⚙️ How Public Key Caching Works](#️-how-public-key-caching-works)
+- [📄 API Reference](#-api-reference)
+- [🤝 Contributing & License](#-contributing--license)
 
 ---
 
 ## ✨ Features
 
-- 🛡️ **Pure Dart**: Verify tokens without exposing your private keys or using the Firebase Admin SDK.
-- 🌍 **Multi-Platform**: Works on **Android**, **iOS**, **Web**, **macOS**, **Windows**, and **Linux**.
-- ⏱️ **Accurate Timing**: Uses NTP synchronization to prevent issues with device clock drift.
-- ⚡ **High Performance**: Caches Google's public keys for faster verification.
-- 🔐 **Secure Validation**:
-  - Checks **Signature** (RSA SHA-256)
-  - Validates **Expiration** (`exp`), **Issued At** (`iat`), and **Auth Time** (`auth_time`).
-  - Verifies **Audience** (`aud` / Project ID) and **Issuer** (`iss`).
+- 🛡️ **Zero Private Keys Needed**: Validates JWT signatures using Google's public X.509 certificates. Avoids bundling risky service account JSON keys into clients or edge microservices.
+- ⚡ **Sub-Millisecond Execution**: In-memory caching of Google's public keys based on HTTP `Cache-Control` / `Expires` headers, with optional local clock mode (`useNtp: false`) for near-instant verification.
+- ⏱️ **NTP Time Synchronization & Failover**: Eliminates client clock drift issues using `ntp_dart` for precise UTC time, with automatic and graceful fallback to the system clock when offline or behind firewalls.
+- 🏢 **Multi-Tenant / Multi-Project**: Verify tokens across multiple Firebase projects in a single instance, or override project IDs per verification call for thread-safe concurrent requests.
+- 🌍 **Pure Dart & 100% Cross-Platform**: Compatible with **Flutter** (Android, iOS, Web, macOS, Windows, Linux) and **Server-side Dart** (Dart Frog, Shelf, Serverpod, Docker, CLI).
+- 🔄 **Configurable Leeway**: Built-in clock skew leeway (default 5 minutes) to absorb normal distributed server clock variances.
 
 ---
 
-## 🚀 Getting Started
+## 📦 Installation
 
-### 1. Install via `pubspec.yaml`
+Add `firebase_verify_token_dart` to your Flutter or Dart project:
+
+```bash
+# For Flutter projects:
+flutter pub add firebase_verify_token_dart
+
+# For pure Dart or Server-side projects:
+dart pub add firebase_verify_token_dart
+```
+
+Or add it directly to your `pubspec.yaml`:
+
 ```yaml
 dependencies:
-  firebase_verify_token_dart: ^2.3.0
-```
-
-### 2. Import the Package
-```dart
-import 'package:firebase_verify_token_dart/firebase_verify_token_dart.dart';
+  firebase_verify_token_dart: ^2.3.1
 ```
 
 ---
 
-## 📖 Usage
-
-### Initialize
-Set the allowed Firebase Project IDs (Audience) before verifying tokens. This is usually done in your `main()` or initialization logic.
+## 🚀 Quick Start
 
 ```dart
-void main() {
+import 'package:firebase_verify_token_dart/firebase_verify_token_dart.dart';
+
+void main() async {
+  // 1. Configure accepted Firebase Project IDs (Audience)
   FirebaseVerifyToken.projectIds = ['my-firebase-project-id'];
+
+  // 2. Verify an ID token
+  final isValid = await FirebaseVerifyToken.verify(token);
+
+  if (isValid) {
+    print('✅ Token is authentic and valid!');
+    final uid = FirebaseVerifyToken.getUserID(token);
+    print('User UID: $uid');
+  } else {
+    print('❌ Token is invalid, expired, or untrusted.');
+  }
 }
 ```
 
-### Verify a Token
-Verify a raw JWT token string. This method is asynchronous and returns a `bool`.
+---
+
+## 📖 Usage Guide
+
+### 1. Initialize Allowed Projects
+
+Before validating tokens, configure the accepted Firebase Project IDs. The library checks that the token's `aud` claim matches one of these project IDs:
 
 ```dart
-final isValid = await FirebaseVerifyToken.verify(token);
+FirebaseVerifyToken.projectIds = [
+  'my-production-app',
+  'my-staging-app',
+];
+```
+
+### 2. Standard Token Verification
+
+The `verify()` method evaluates the token against Google's public certificates, cryptographic signatures, timestamp validity, audience, and issuer. It returns a boolean and never throws unhandled exceptions:
+
+```dart
+final bool isValid = await FirebaseVerifyToken.verify(token);
 
 if (isValid) {
-  print("✅ Token is valid!");
-} else {
-  print("❌ Invalid token.");
+  // Grant access to protected resources
 }
 ```
 
-### Get Verification Details
-Pass an optional callback to get detailed results, including the matched project ID and verification duration.
+### 3. Detailed Result Callback
+
+Pass an `onVerifyCompleted` callback to inspect verification metadata, such as the matched project ID and elapsed duration:
 
 ```dart
 final isValid = await FirebaseVerifyToken.verify(
   token,
-  onVerifyCompleted: ({required bool status, String? projectId, int? duration}) {
+  onVerifyCompleted: ({
+    required bool status,
+    String? projectId,
+    int duration = 0,
+  }) {
     if (status) {
-      print("✅ Verified for project '$projectId' inside ${duration}ms");
+      print('✅ Verified for project "$projectId" in ${duration}ms');
     } else {
-      print("❌ Verification failed.");
+      print('❌ Verification failed after ${duration}ms');
     }
   },
 );
 ```
 
-### ⚙️ Advanced Configuration (Thread-Safe & Offline-Ready)
+> [!NOTE]
+> `onVerifyCompleted` is always invoked upon completion, even if verification fails or an exception is caught internally.
 
-You can pass advanced arguments directly to the `verify` method. This is perfect for high-performance backends, offline development, or multi-tenant (multi-project) systems:
+### 4. Multi-Tenant & Thread-Safe Verification
+
+In high-concurrency backends (e.g. Dart Frog, Shelf APIs), you might serve multiple tenants or distinct Firebase projects simultaneously. Rather than mutating the global `FirebaseVerifyToken.projectIds` list, pass `projectIds` directly to the `verify` call:
 
 ```dart
 final isValid = await FirebaseVerifyToken.verify(
   token,
-  // 1. Thread-safe project overriding (avoid race conditions in multi-tenant backends)
-  projectIds: ['my-awesome-project', 'another-tenant-project'],
-
-  // 2. Custom clock skew leeway (default is 5 minutes)
-  clockSkew: const Duration(minutes: 2),
-
-  // 3. High-performance / offline mode (defaults to true)
-  // Set to 'false' to bypass all NTP network checks and use the system clock.
-  // This executes validation locally and synchronously in under 1ms!
-  useNtp: false,
-
-  onVerifyCompleted: ({required bool status, String? projectId, int? duration}) {
-    print("Verification completed in ${duration}ms.");
-  },
+  projectIds: ['tenant-a-project', 'tenant-b-project'],
 );
 ```
 
-#### NTP Failover (Always Reliable)
-If `useNtp` is set to `true` (the default), the package will synchronize time using a precise network clock. However, if the server is offline or UDP port 123 is blocked by a restrictive firewall, the package **automatically and gracefully falls back to the system clock** rather than breaking your authentication flow.
+This prevents race conditions and makes your verification logic completely thread-safe.
 
-### Extract Claims (Without Verification)
-Sometimes you just need to read the token's content (e.g., User ID) without a full cryptographic check.
+### 5. Ultra-Fast & Offline Mode (`useNtp: false`)
+
+By default, `verify()` queries an NTP server via `ntp_dart` to ensure the current UTC time is tamper-proof. For local testing, offline development, or ultra-low-latency API routes where NTP roundtrips are undesirable, disable NTP checks:
 
 ```dart
-// Get User ID (sub)
-final uid = FirebaseVerifyToken.getUserID(token);
+final isValid = await FirebaseVerifyToken.verify(
+  token,
+  useNtp: false, // Bypasses network NTP calls; executes in <1ms
+);
+```
 
-// Get Project ID (aud)
-final projectId = FirebaseVerifyToken.getProjectID(token);
+#### Automatic NTP Failover
+When `useNtp: true`, if the device is offline or UDP port 123 is blocked by a restrictive firewall, the library **automatically falls back to the system clock** to ensure your application continues working reliably.
+
+### 6. Clock Skew & Leeway Tolerance
+
+Distributed cloud systems can have minor clock differences. By default, a 5-minute leeway (`clockSkew`) is applied to timestamp comparisons (`exp`, `iat`, `auth_time`). You can adjust this duration as needed:
+
+```dart
+final isValid = await FirebaseVerifyToken.verify(
+  token,
+  clockSkew: const Duration(minutes: 2), // Custom leeway
+);
+```
+
+### 7. Extract Claims Without Verification
+
+To quickly inspect user metadata (like UID or Project ID) without performing a cryptographic verification:
+
+```dart
+// Extract Subject UID (`sub` claim)
+final String uid = FirebaseVerifyToken.getUserID(token);
+
+// Extract Audience Project ID (`aud` claim)
+final String? projectId = FirebaseVerifyToken.getProjectID(token);
 ```
 
 ---
 
-## 🛠️ Advanced
+## 🔐 Verification & Security Checks
 
-**Why use this over the Firebase Admin SDK?**
-The Firebase Admin SDK requires a service account with elevated privileges, which is dangerous to use in client-side applications. This package purely verifies the token's signature using Google's public keys, making it safe for client-side use or lightweight server-side Dart applications (e.g., Dart Frog, Shelf).
+Under the hood, `FirebaseVerifyToken.verify()` enforces all strict requirements defined in the [official Firebase Auth specification](https://firebase.google.com/docs/auth/admin/verify-id-tokens#verify_id_tokens_using_a_third-party_jwt_library):
+
+| Claim / Property | Validation Rule |
+|---|---|
+| **Algorithm (`alg`)** | Must be `RS256` (RSA SHA-256). |
+| **Key ID (`kid`)** | Must correspond to one of Google's current public certificates. |
+| **Cryptographic Signature** | Verified against Google's public key using `jose_plus`. |
+| **Audience (`aud`)** | Must match one of the configured `projectIds`. |
+| **Issuer (`iss`)** | Must strictly equal `https://securetoken.google.com/<projectId>`. |
+| **Subject (`sub`)** | Must be a non-empty string identifying the authenticated user. |
+| **Expiration Time (`exp`)** | Must be in the future (taking `clockSkew` leeway into account). |
+| **Issued At (`iat`)** | Must be in the past (taking `clockSkew` leeway into account). |
+| **Authentication Time (`auth_time`)** | Must be in the past (taking `clockSkew` leeway into account). |
 
 ---
 
-## 🤝 Contributing
+## ⚙️ How Public Key Caching Works
 
-We welcome contributions!
-- 🐛 **Report Issues**: Submit bugs or feature requests on [GitHub Issues](https://github.com/enzo-desimone/firebase_verify_token_dart/issues).
-- 💡 **Submit PRs**: Pull Requests are welcome. Please adhere to the existing code style.
+Google rotates its public certificates regularly (usually every few hours). 
+
+1. On the first verification call, `firebase_verify_token_dart` fetches Google's public certificates from:  
+   `https://www.googleapis.com/robot/v1/metadata/x509/securetoken@system.gserviceaccount.com`
+2. It parses the HTTP `Cache-Control` (`max-age`) and `Expires` response headers.
+3. Certificates are cached in memory until expiry. Subsequent token verifications reuse the cached keys in memory without initiating any HTTP network roundtrips.
 
 ---
 
-## 📄 License
+## 📄 API Reference
 
-This project is licensed under the [MIT License](https://github.com/enzo-desimone/firebase_verify_token_dart/blob/master/LICENSE).
+### `FirebaseVerifyToken` Class
+
+| Member | Type | Description |
+|---|---|---|
+| `projectIds` | `List<String>` | Global list of allowed Firebase project IDs. |
+| `verify(token, ...)` | `Future<bool>` | Verifies JWT signature, issuer, audience, and timestamps. |
+| `getUserID(token)` | `String` | Extracts the user UID (`sub` claim) unverified. |
+| `getProjectID(token)` | `String?` | Extracts the project ID (`aud` claim) unverified. |
+
+### `FirebaseVerifyToken.verify` Parameters
+
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `token` | `String` | *required* | The raw Firebase Auth JWT string. |
+| `projectIds` | `List<String>?` | `null` | Optional list of project IDs to override global `projectIds`. |
+| `clockSkew` | `Duration` | `Duration(minutes: 5)` | Clock drift tolerance leeway. |
+| `useNtp` | `bool` | `true` | When `true`, uses NTP time synchronization with system clock fallback. |
+| `onVerifyCompleted` | `Function?` | `null` | Callback returning `status`, `projectId`, and `duration`. |
+
+---
+
+## 🤝 Contributing & License
+
+Contributions, feedback, and bug reports are welcome! Please feel free to open an issue or pull request on [GitHub](https://github.com/enzo-desimone/firebase_verify_token_dart).
+
+Released under the [MIT License](https://opensource.org/licenses/MIT).
+
