@@ -1,5 +1,10 @@
 # Changelog
 
+## 2.3.2
+
+- **Documentation & Showcase**: Added package screenshot metadata in `pubspec.yaml` for pub.dev preview.
+- **Dependency Updates**: Upgraded `ntp_dart` to `^1.3.2`.
+
 ## 2.3.1
 
 - **Dependency Updates**:
